@@ -20,6 +20,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         receive_dict = json.loads(text_data)
+        message = receive_dict['message']
+        action = receive_dict['action']
+
+        if action == 'new-offer' or action == 'new-answer':
+            receiver_channel_name = receive_dict['message']['receiver_channel_name']
+            receive_dict['message']['receiver_channel_name'] = self.channel_name
+            await self.channel_layer.send(
+                receiver_channel_name,
+                {
+                    'type': 'send_sdp',
+                    'receive_dict': receive_dict,
+                }
+            )
+            return
+
         receive_dict['message']['receiver_channel_name'] = self.channel_name
         print(receive_dict)
         # peer_message = text_data_json['peer-message']

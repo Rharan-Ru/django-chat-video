@@ -44,14 +44,16 @@ btnJoin.addEventListener('click', () => {
 
     webSocket.onmessage = function(e) {
         var data = JSON.parse(e.data);
-        var peerUsername = data['receive_dict']['peer'];
-        var action = data['receive_dict']['action'];
+        if (data.receive_dict) {
+            var peerUsername = data['receive_dict']['peer'];
+            var action = data['receive_dict']['action'];
+            var receiver_channel_name = data['receive_dict']['message']['receiver_channel_name'];
+        };
 
         if (username == peerUsername) {
             return;
         };
 
-        var receiver_channel_name = data['receive_dict']['message']['receiver_channel_name'];
         if (action == 'new-peer') {
             createOfferer(peerUsername, receiver_channel_name);
             return;
@@ -67,29 +69,31 @@ btnJoin.addEventListener('click', () => {
             peer.setRemoteDescription(answer);
             return;
         }
-//        console.log(data.message);
-//
-//        var today = new Date();
-//        var messageContainer = document.querySelector('#message-list');
-//        var li = document.createElement("li");
-//        li.innerHTML = '[' + username + ' | ' + today.toLocaleTimeString() + ']: ' + '['+data.message+']';
-//        messageContainer.prepend(li);
+        if (data.msg) {
+            console.log(data.msg);
+            var today = new Date();
+            var messageContainer = document.querySelector('#message-list');
+            var li = document.createElement("li");
+            li.innerHTML = '[' + data.username + ' | ' + today.toLocaleTimeString() + ']: ' + '['+data.msg+']';
+            messageContainer.prepend(li);
+        }
     };
 
-//    document.querySelector('#btn-send-msg').onclick = function(e) {
-//        const messageInputDom = document.querySelector('#msg');
-//        const message = messageInputDom.value;
-//        if (message.length > 0) {
-//            webSocket.send(JSON.stringify({
-//                'message': message,
-//            }));
-//            messageInputDom.value = '';
-//            document.getElementById('input-req').innerHTML = ''
-//        }
-//        else {
-//            document.getElementById('input-req').innerHTML = 'O campo acima precisa ser preenchido'
-//        }
-//    };
+    document.querySelector('#btn-send-msg').onclick = function(e) {
+        const messageInputDom = document.querySelector('#msg');
+        const message = messageInputDom.value;
+        if (message.length > 0) {
+            webSocket.send(JSON.stringify({
+                'chat-msg': message,
+                'username': username,
+            }));
+            messageInputDom.value = '';
+            document.getElementById('input-req').innerHTML = ''
+        }
+        else {
+            document.getElementById('input-req').innerHTML = 'O campo acima precisa ser preenchido'
+        }
+    };
 });
 
 // Create new MediaStream for access webcam and microfone
@@ -141,7 +145,7 @@ var userMedia = navigator.mediaDevices.getUserMedia(constraints)
     })
     .catch(error => {
         console.log('Error accessing media devices.', error);
-    })
+    });
 
 function sendSignals(action, message) {
     webSocket.send(JSON.stringify({
@@ -159,24 +163,22 @@ function createOfferer(peerUsername, receiver_channel_name){
     dc.addEventListener('open', () => {
         console.log('Connection opened');
     });
-    dc.addEventListener('message', dcOnMessage);
 
     var remoteVideo = createVideo(peerUsername);
     setOnTrack(peer, remoteVideo);
 
     mapPeers[peerUsername] = [peer, dc];
 
-    peer.addEventListener('iceconnectiondatachange', () => {
+    peer.addEventListener('iceconnectionstatechange', () => {
         console.log('ice');
         var iceConnectionState = peer.iceConnectionState;
         if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed') {
             delete mapPeers[peerUsername];
-
             if (iceConnectionState != 'closed'){
                 peer.close();
-            };
+            }
             removeVideo(remoteVideo);
-        }
+        };
     });
 
     peer.addEventListener('icecandidate', (event) => {
@@ -189,13 +191,13 @@ function createOfferer(peerUsername, receiver_channel_name){
             'sdp': peer.localDescription,
             'receiver_channel_name': receiver_channel_name,
         })
-    })
+    });
 
     peer.createOffer()
         .then(o => peer.setLocalDescription(o))
         .then(() => {
            console.log('Local description set susccesfully!');
-        })
+        });
 }
 
 function createAnswerer(offer, peerUsername, receiver_channel_name) {
@@ -210,12 +212,11 @@ function createAnswerer(offer, peerUsername, receiver_channel_name) {
         peer.dc.addEventListener('open', () => {
             console.log('Connection opened like your mother');
         })
-        peer.dc.addEventListener('message', dcOnMessage);
 
         mapPeers[peerUsername] = [peer, peer.dc];
-    })
+    });
 
-    peer.addEventListener('iceconnectiondatachange', () => {
+    peer.addEventListener('iceconnectionstatechange', () => {
         var iceConnectionState = peer.iceConnectionState;
         if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed') {
             delete mapPeers[peerUsername];
@@ -224,7 +225,7 @@ function createAnswerer(offer, peerUsername, receiver_channel_name) {
                 peer.close();
             }
             removeVideo(remoteVideo);
-        }
+        };
     });
 
     peer.addEventListener('icecandidate', (event) => {
@@ -236,7 +237,7 @@ function createAnswerer(offer, peerUsername, receiver_channel_name) {
             'sdp': peer.localDescription,
             'receiver_channel_name': receiver_channel_name,
         });
-    })
+    });
 
     peer.setRemoteDescription(offer)
         .then(() => {
@@ -245,23 +246,15 @@ function createAnswerer(offer, peerUsername, receiver_channel_name) {
            return peer.createAnswer();
         })
         .then(a => {
-            console.log("Answear created ");
+            console.log("Answear created: ", a);
             peer.setLocalDescription(a);
-        })
+        });
 };
 
 function addLocalTracks(peer){
     localStream.getTracks().forEach(track => {
         peer.addTrack(track, localStream);
     });
-};
-
-function dcOnMessage(event){
-    var today = new Date();
-    var messageContainer = document.querySelector('#message-list');
-    var li = document.createElement("li");
-    li.innerHTML = '[' + username + ' | ' + today.toLocaleTimeString() + ']: ' + '['+event.data+']';
-    messageContainer.prepend(li);
 };
 
 function createVideo(peerUsername){
@@ -276,7 +269,7 @@ function createVideo(peerUsername){
     videoContainer.appendChild(videoWrapper);
     videoWrapper.appendChild(remoteVideo);
     return remoteVideo;
-}
+};
 
 function setOnTrack(peer, remoteVideo){
     var remoteStream = new MediaStream();

@@ -20,7 +20,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         receive_dict = json.loads(text_data)
-        message = receive_dict['message']
+
+        if 'chat-msg' in receive_dict:
+            print(receive_dict['username'])
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'send_chat_msg',
+                    'msg': receive_dict['chat-msg'],
+                    'username': receive_dict['username'],
+                }
+            )
+            return
+
         action = receive_dict['action']
 
         if (action == 'new-offer') or (action == 'new-answer'):
@@ -48,4 +60,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         receive_dict = event['receive_dict']
         await self.send(json.dumps({
             'receive_dict': receive_dict
+        }))
+
+    async def send_chat_msg(self, event):
+        msg = event['msg']
+        username = event['username']
+        await self.send(json.dumps({
+            'msg': msg,
+            'username': username,
         }))

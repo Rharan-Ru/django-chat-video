@@ -23,7 +23,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = receive_dict['message']
         action = receive_dict['action']
 
-        if action == 'new-offer' or action == 'new-answer':
+        if (action == 'new-offer') or (action == 'new-answer'):
             receiver_channel_name = receive_dict['message']['receiver_channel_name']
             receive_dict['message']['receiver_channel_name'] = self.channel_name
             await self.channel_layer.send(
@@ -34,13 +34,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
             return
-
         receive_dict['message']['receiver_channel_name'] = self.channel_name
-        print(receive_dict)
-        # peer_message = text_data_json['peer-message']
-        # print(peer_message)
-        # message = text_data_json['message']
-        # print(message)
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {

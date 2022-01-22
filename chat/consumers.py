@@ -58,6 +58,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def send_sdp(self, event):
         receive_dict = event['receive_dict']
+        print(receive_dict)
         await self.send(json.dumps({
             'receive_dict': receive_dict
         }))

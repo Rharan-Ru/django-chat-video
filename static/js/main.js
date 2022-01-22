@@ -55,15 +55,18 @@ btnJoin.addEventListener('click', () => {
         };
 
         if (action == 'new-peer') {
+            console.log("Create Offerer");
             createOfferer(peerUsername, receiver_channel_name);
             return;
         }
         if (action == 'new-offer') {
+            console.log("Create Answear");
             var offer = data['receive_dict']['message']['sdp'];
             createAnswerer(offer, peerUsername, receiver_channel_name);
             return;
         }
         if (action == 'new-answer') {
+            console.log("Set remote description for answear!");
             var answer = data['receive_dict']['message']['sdp'];
             var peer = mapPeers[peerUsername][0];
             peer.setRemoteDescription(answer);
@@ -97,7 +100,7 @@ btnJoin.addEventListener('click', () => {
 });
 
 // Create new MediaStream for access webcam and microfone
-var localStream = new MediaStream();
+//var localStream = new MediaStream();
 
 // Constraints for userMedia
 const constraints = {
@@ -156,7 +159,9 @@ function sendSignals(action, message) {
 };
 
 function createOfferer(peerUsername, receiver_channel_name){
-    var peer = new RTCPeerConnection(null);
+    console.log('Passou por createOfferer');
+    const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
+    var peer = new RTCPeerConnection(configuration);
     addLocalTracks(peer);
 
     var dc = peer.createDataChannel('channel');
@@ -170,7 +175,7 @@ function createOfferer(peerUsername, receiver_channel_name){
     mapPeers[peerUsername] = [peer, dc];
 
     peer.addEventListener('iceconnectionstatechange', () => {
-        console.log('ice');
+        console.log('ice state change');
         var iceConnectionState = peer.iceConnectionState;
         if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed') {
             delete mapPeers[peerUsername];
@@ -183,25 +188,27 @@ function createOfferer(peerUsername, receiver_channel_name){
 
     peer.addEventListener('icecandidate', (event) => {
         if(event.candidate){
-            console.log('New candidate: ', JSON.stringify(peer.localDescription));
+            console.log('New ice candidate in offer');
             return;
         };
-
         sendSignals('new-offer', {
             'sdp': peer.localDescription,
             'receiver_channel_name': receiver_channel_name,
-        })
+        });
+        console.log('Send signals - new-offer');
     });
 
     peer.createOffer()
-        .then(o => peer.setLocalDescription(o))
+        .then(off => peer.setLocalDescription(off))
         .then(() => {
            console.log('Local description set susccesfully!');
         });
 }
 
 function createAnswerer(offer, peerUsername, receiver_channel_name) {
-    var peer = new RTCPeerConnection(null);
+    console.log('Passou por createAnswerer');
+    const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
+    var peer = new RTCPeerConnection(configuration);
     addLocalTracks(peer);
 
     var remoteVideo = createVideo(peerUsername);
@@ -230,23 +237,23 @@ function createAnswerer(offer, peerUsername, receiver_channel_name) {
 
     peer.addEventListener('icecandidate', (event) => {
         if(event.candidate){
-            console.log('New candidate');
+            console.log('New ice candidate in answer');
             return;
-        }
+        };
         sendSignals('new-answer', {
             'sdp': peer.localDescription,
             'receiver_channel_name': receiver_channel_name,
         });
+        console.log('Send signals for new-answer');
     });
 
     peer.setRemoteDescription(offer)
         .then(() => {
            console.log('Remote description set susccesfully! for: ', peerUsername);
-
            return peer.createAnswer();
         })
         .then(a => {
-            console.log("Answear created: ", a);
+            console.log("Answear created");
             peer.setLocalDescription(a);
         });
 };
@@ -276,7 +283,6 @@ function setOnTrack(peer, remoteVideo){
     remoteVideo.srcObject = remoteStream;
 
     peer.addEventListener('track', async (event) => {
-        console.log('seted');
         remoteStream.addTrack(event.track, remoteStream);
     });
 };

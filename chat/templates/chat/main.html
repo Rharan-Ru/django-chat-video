@@ -1,47 +1,62 @@
 <!doctype html>
+{% extends 'navbar.html' %}
 {% load static %}
+{% block content %}
 <style>
+    body {
+        background-color: black;
+    }
     html video {
-        width: 400px;
+        width: 100%;
+    }
+    .msg-container {
+        height: 70vh;
+        overflow-y: auto;
+        background-image: url({% static 'background.gif' %});
+        background-size: cover;
+        background-position:center;
+        background-blend-mode: multiply;
+        background-color: gray;
+        scroll-behavior: smooth;
     }
 </style>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Django Channels WebRTC</title>
-</head>
-<body>
-<h3 id="label-username" style="display: flex; justify-content: center ">USERNAME</h3>
+
+<h3 class="text-white" id="label-username" style="display: flex; justify-content: center ">USERNAME</h3>
 <div style="display:flex; justify-content: center; flex-direction: column">
     <input type="text" id="username">
     <button id="btn-join">Join Room</button>
 </div>
-<div class="main-grid-container">
-    <div id="video-container" style="display:flex">
-        <div>
-            <video src="" id="local-video" autoplay playsinline style="background-color: black"></video>
+
+<div class="row p-0 m-0">
+    <div class="col-sm-4 mt-2 p-0">
+        <div class="row m-0 p-0" id="video-container" style="width:100%">
+            <div class="">
+                <video src="" id="local-video" autoplay playsinline style="background-color: white; width:100%"></video>
+            </div>
+
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center">
+            <button id="btn-toggle-audio">Audio Mute</button>
+            <button id="btn-toggle-video">Video Off</button>
         </div>
     </div>
-    <button id="btn-toggle-audio">Audio Mute</button>
-    <button id="btn-toggle-video">Video Off</button>
-    <div id="chat" style="background-color: lightblue">
-        <h3>Chat</h3>
-        <div id="messages" style="height: 100px; overflow-y: auto; margin: 0px">
-            <ul id="message-list" style="margin: 0px; list-style: none">
-            </ul>
+    <div class="col-sm-8 mt-2 p-0">
+        <div class="p-0 m-0 card bg-dark text-white msg-container" id="position" style="">
+            <div class="card-img-overlay p-1" id="chat-log">
+            </div>
         </div>
-        <div style="margin: 0px">
-            <input type="text" id="msg">
-            <button id="btn-send-msg">Send Message</button>
-            <p id="input-req"></p>
+
+        <div class="input-group">
+            <input class="form-control border-end-0 border bg-dark text-white" id="chat-message-input" maxlength="5000" placeholder="..." required="true">
+            <span class="input-group-append">
+                <button class="btn btn-outline-secondary bg-white border-bottom-0 border ms-n5" onclick="alterClass();" id="chat-message-submit" type="submit" value="Send">
+                    <i class="bi bi-arrow-right-square-fill"></i>
+                </button>
+            </span>
         </div>
-        <button id="btn-share-screen">Share Screen</button>
+        <p id="input-req" class="text-white text-center"></p>
     </div>
 </div>
-<script type="text/javascript" src="{% static 'js/main.js'%}"></script>
 
-</body>
-</html>
+<script type="text/javascript" src="{% static 'js/main.js'%}"></script>
+{% endblock content %}

@@ -74,16 +74,41 @@ btnJoin.addEventListener('click', () => {
         }
         if (data.msg) {
             console.log(data.msg);
-            var today = new Date();
-            var messageContainer = document.querySelector('#message-list');
-            var li = document.createElement("li");
-            li.innerHTML = '[' + data.username + ' | ' + today.toLocaleTimeString() + ']: ' + '['+data.msg+']';
-            messageContainer.prepend(li);
+            if (username === data.username) {
+                $('#chat-log').append("<div class='m-0 mt-1 p-0'> <div class='row m-0 p-0'> <div class='col-12 m-0 p-0'> <p style='float-left' class='ms-2'> <strong>"+ data.username +"</strong></p></div><div class='container rounded ml-0 pl-0 perfil1' style=''> <p class='bg-dark float-left rounded text-card p-2' style='max-width:100%; min-width:15%'>"+ data.msg +"</p></div></div></div>")
+            }
+            else {
+                $('#chat-log').append("<div class='m-0 mt-1 p-0 '> <div class='row m-0 p-0 text-warning'> <div class='col-12 m-0 p-0'> <p style='float-right' class='me-2'> <strong>"+ data.username +"</strong></p></div><div class='container rounded mr-0 pr-0 perfil1' style=''> <p class='bg-primary float-right rounded text-card p-2' style='max-width:100%;min-width:15%;'>"+ data.msg +"</p></div></div></div>")
+            }
+            var scroll = document.getElementById('position');
+            scroll.scrollTop = scroll.scrollHeight;
         }
     };
 
-    document.querySelector('#btn-send-msg').onclick = function(e) {
-        const messageInputDom = document.querySelector('#msg');
+//    document.querySelector('#btn-send-msg').onclick = function(e) {
+//        const messageInputDom = document.querySelector('#msg');
+//        const message = messageInputDom.value;
+//        if (message.length > 0) {
+//            webSocket.send(JSON.stringify({
+//                'chat-msg': message,
+//                'username': username,
+//            }));
+//            messageInputDom.value = '';
+//            document.getElementById('input-req').innerHTML = ''
+//        }
+//        else {
+//            document.getElementById('input-req').innerHTML = 'O campo acima precisa ser preenchido'
+//        }
+//    };
+    document.querySelector('#chat-message-input').focus();
+    document.querySelector('#chat-message-input').onkeyup = function(e) {
+        if (e.keyCode === 13) {  // enter, return
+            document.querySelector('#chat-message-submit').click();
+        }
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function(e) {
+        const messageInputDom = document.querySelector('#chat-message-input');
         const message = messageInputDom.value;
         if (message.length > 0) {
             webSocket.send(JSON.stringify({
@@ -148,7 +173,7 @@ var userMedia = navigator.mediaDevices.getUserMedia(constraints)
     })
     .catch(error => {
         console.log('Error accessing media devices.', error);
-    });
+    })
 
 function sendSignals(action, message) {
     webSocket.send(JSON.stringify({
@@ -208,7 +233,7 @@ function createOfferer(peerUsername, receiver_channel_name){
 function createAnswerer(offer, peerUsername, receiver_channel_name) {
     console.log('Passou por createAnswerer');
     const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
-    var peer = new RTCPeerConnection(configuration);
+    var peer = new RTCPeerConnection(null);
     addLocalTracks(peer);
 
     var remoteVideo = createVideo(peerUsername);

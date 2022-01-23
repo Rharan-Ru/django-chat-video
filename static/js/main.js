@@ -55,18 +55,18 @@ btnJoin.addEventListener('click', () => {
         };
 
         if (action == 'new-peer') {
-            console.log("Create Offerer");
+            console.log("Create Offerer: ", peerUsername);
             createOfferer(peerUsername, receiver_channel_name);
             return;
         }
         if (action == 'new-offer') {
-            console.log("Create Answear");
+            console.log("Create Answear: ", peerUsername);
             var offer = data['receive_dict']['message']['sdp'];
             createAnswerer(offer, peerUsername, receiver_channel_name);
             return;
         }
         if (action == 'new-answer') {
-            console.log("Set remote description for answear!");
+            console.log("Set remote description for answear!: ", peerUsername);
             var answer = data['receive_dict']['message']['sdp'];
             var peer = mapPeers[peerUsername][0];
             peer.setRemoteDescription(answer);
@@ -85,21 +85,6 @@ btnJoin.addEventListener('click', () => {
         }
     };
 
-//    document.querySelector('#btn-send-msg').onclick = function(e) {
-//        const messageInputDom = document.querySelector('#msg');
-//        const message = messageInputDom.value;
-//        if (message.length > 0) {
-//            webSocket.send(JSON.stringify({
-//                'chat-msg': message,
-//                'username': username,
-//            }));
-//            messageInputDom.value = '';
-//            document.getElementById('input-req').innerHTML = ''
-//        }
-//        else {
-//            document.getElementById('input-req').innerHTML = 'O campo acima precisa ser preenchido'
-//        }
-//    };
     document.querySelector('#chat-message-input').focus();
     document.querySelector('#chat-message-input').onkeyup = function(e) {
         if (e.keyCode === 13) {  // enter, return
@@ -175,6 +160,7 @@ var userMedia = navigator.mediaDevices.getUserMedia(constraints)
         console.log('Error accessing media devices.', error);
     })
 
+// Function that send signnals to consumer
 function sendSignals(action, message) {
     webSocket.send(JSON.stringify({
         'peer': username,
@@ -184,9 +170,8 @@ function sendSignals(action, message) {
 };
 
 function createOfferer(peerUsername, receiver_channel_name){
-    console.log('Passou por createOfferer');
     const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
-    var peer = new RTCPeerConnection(configuration);
+    var peer = new RTCPeerConnection(null);
     addLocalTracks(peer);
 
     var dc = peer.createDataChannel('channel');
@@ -194,13 +179,14 @@ function createOfferer(peerUsername, receiver_channel_name){
         console.log('Connection opened');
     });
 
+    // Create new remote-video on frontend
     var remoteVideo = createVideo(peerUsername);
     setOnTrack(peer, remoteVideo);
 
     mapPeers[peerUsername] = [peer, dc];
 
+    // If user is disconnected from ice-server close user peer and remove remote-video from frontend
     peer.addEventListener('iceconnectionstatechange', () => {
-        console.log('ice state change');
         var iceConnectionState = peer.iceConnectionState;
         if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed') {
             delete mapPeers[peerUsername];
@@ -220,7 +206,6 @@ function createOfferer(peerUsername, receiver_channel_name){
             'sdp': peer.localDescription,
             'receiver_channel_name': receiver_channel_name,
         });
-        console.log('Send signals - new-offer');
     });
 
     peer.createOffer()
@@ -228,10 +213,9 @@ function createOfferer(peerUsername, receiver_channel_name){
         .then(() => {
            console.log('Local description set susccesfully!');
         });
-}
+};
 
 function createAnswerer(offer, peerUsername, receiver_channel_name) {
-    console.log('Passou por createAnswerer');
     const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
     var peer = new RTCPeerConnection(null);
     addLocalTracks(peer);
@@ -242,7 +226,7 @@ function createAnswerer(offer, peerUsername, receiver_channel_name) {
     peer.addEventListener('datachannel', e => {
         peer.dc = e.channel;
         peer.dc.addEventListener('open', () => {
-            console.log('Connection opened like your mother');
+            console.log('Connection opened!');
         })
 
         mapPeers[peerUsername] = [peer, peer.dc];
@@ -262,19 +246,18 @@ function createAnswerer(offer, peerUsername, receiver_channel_name) {
 
     peer.addEventListener('icecandidate', (event) => {
         if(event.candidate){
-            console.log('New ice candidate in answer');
+            console.log('New ice candidate in answer: ', peerUsername);
             return;
         };
         sendSignals('new-answer', {
             'sdp': peer.localDescription,
             'receiver_channel_name': receiver_channel_name,
         });
-        console.log('Send signals for new-answer');
     });
 
     peer.setRemoteDescription(offer)
         .then(() => {
-           console.log('Remote description set susccesfully! for: ', peerUsername);
+           console.log('Remote description set susccesfully!');
            return peer.createAnswer();
         })
         .then(a => {
